@@ -1,0 +1,58 @@
+version: '3.5'
+
+services:
+  docker-dev-env-for-symfony-web:
+    container_name: docker-dev-env-for-symfony-web
+    build:
+      context: ./docker/nginx
+      args:
+        UID: $U_ID
+    ports:
+      - 1000:80
+    volumes:
+      - ./public:/appdata/www/public
+    depends_on:
+      - docker-dev-env-for-symfony-be
+    networks:
+      - docker-dev-env-for-symfony-network
+
+  docker-dev-env-for-symfony-be:
+    container_name: docker-dev-env-for-symfony-be
+    build:
+      context: docker/php
+      args:
+        UID: $U_ID
+    volumes:
+      - ./:/appdata/www
+    ###> XDEBUG 3 ###
+    # Use your client IP here
+    # Linux: run "ip a | grep docker0"
+    # Windows (with WSL2) and Mac: host.docker.internal
+    environment:
+      XDEBUG_CLIENT_HOST: 172.17.0.1
+      XDEBUG_CLIENT_PORT: 9003
+      PHP_IDE_CONFIG: serverName=docker-dev-env-for-symfony
+    networks:
+      - docker-dev-env-for-symfony-network
+
+  docker-dev-env-for-symfony-db:
+    container_name: docker-dev-env-for-symfony-db
+    build:
+      context: ./docker/database
+    ports:
+      - 10000:3306
+    environment:
+      MYSQL_DATABASE: database
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - docker-dev-env-for-symfony-db-data:/var/lib/mysql
+    networks:
+      - docker-dev-env-for-symfony-network
+    command: ['mysqld', '--character-set-server=utf8mb4', '--collation-server=utf8mb4_unicode_ci']
+
+volumes:
+  docker-dev-env-for-symfony-db-data:
+
+networks:
+  docker-dev-env-for-symfony-network:
+    external: true
